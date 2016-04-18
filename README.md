@@ -2,12 +2,13 @@
 Card winrate analysis using Trackobot API
 
 # Usage
-* update your API Key in config.py (any valid username/password should work)
+* update your Username, Password, and API Key in config.py
 * $ python analysis.py
 * follow instructions
 
 # Modes
-Mulligan Analysis: For each matchup, the winrate of cards played in the first 6 turns.  
+Card Analysis: For each card in a deck, find the winrate of games in which the card was played.
+Mulligan Analysis: For each matchup, find the winrate of cards played in the first 6 turns.  
 Time Analysis: For each hour of the day, your overall winrate.
 
 # Config
