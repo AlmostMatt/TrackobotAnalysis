@@ -10,6 +10,7 @@ from config import USERNAME, PASSWORD, LOCAL_TZ, API_KEY
 
 MODES = ['arena', 'ranked', 'friendly', 'casual']
 CLASSES = ['Warrior', 'Warlock', 'Priest', 'Paladin', 'Mage', 'Rogue', 'Shaman', 'Hunter', 'Druid']
+PAGE_SIZE = 15
 
 HERO_POWERS = {
     'Lesser Heal', 'Life Tap', 'Shape Shift', 'Fireblast', 'Armor Up', 'Dagger Mastery',
@@ -27,6 +28,7 @@ TOKEN_CARDS = {
     'Map to the Golden Monkey', 'Golden Monkey',
     'Lantern of Power', 'Timepiece of Horror', 'Mirror of Doom',
 }
+THE_COIN = 'The Coin'
 
 # TODO: for a given deck/matchup, give winrate for each card
 # (especially the winrate if the card is places in the first 4-6 turns)
@@ -85,7 +87,15 @@ def num_pages(mode=None, deck=None):
         url = url + "&query=%s" % (mode)
     r = requests.get(url, auth=(USERNAME, PASSWORD))
     data = r.json()
-    return data['meta']['total_pages']
+    total = data['meta']['total_pages']
+    if total > 5:
+        clear()
+        print('Found ~%s games, how many do you want to load?' % (total * PAGE_SIZE))
+        inpt = raw_input("Enter a number between 0 and %s or 'a' for all: " % (total * PAGE_SIZE))
+        if inpt not in ['a', 'all', "'all'"]:
+            total = min((int(inpt) + PAGE_SIZE - 1)/PAGE_SIZE, total)
+        clear()
+    return total
 
 def load_page(page=1, mode=None, deck=None):
     url = ("https://trackobot.com/profile/history.json?page=%s&username=%s&token=%s"
@@ -127,22 +137,24 @@ def cards_by_cost(card_cost_map):
             tokens.append(card)
         elif card in HERO_POWERS:
             hero_powers.append(card)
+        elif card == THE_COIN:
+            continue
         else:
             cost_card_map[cost].append(card)
     return ([(cost, cost_card_map[cost]) for cost in sorted(cost_card_map.keys())]
             + [('Tokens', tokens), ('Hero Powers', hero_powers)])
 
-def print_winrate(name, w, l):
-    # Cards not actually in the deck
-    if w + l <= 1: return
+def print_winrate(name, w, l, suffix = ''):
     # division by 0 case
     if w + l == 0: return
-    print("%s,  %s/%s   (%s%%)" % (name, w, l, winrate(w,l)))
+    print("{:25s} {:3d}/{:<3d}  {:6s}    {}".format(name, w, l, '(%s%%)' % winrate(w,l), suffix))
 
 def winrate(w, l):
     if w + l == 0: return 0
     return int(100*(float(w)/(w+l)))
 
+def average(list_nums):
+    return float(sum(list_nums))/len(list_nums)
 
 def card_analysis(deckname="Mono Spells", pages=None):
     games = load_games(pages=pages, deck=deckname, mode='ranked')
@@ -150,27 +162,54 @@ def card_analysis(deckname="Mono Spells", pages=None):
     card_cost = defaultdict(int)
     card_w = defaultdict(int)
     card_l = defaultdict(int)
+    card_turn_played = defaultdict(list)
+    card_game_duration = defaultdict(list)
     game_count = 0
+    order_w = defaultdict(int)
+    order_l = defaultdict(int)
     for game in games:
         if game['mode'] != 'ranked': continue
         if game['hero_deck'] != deckname: continue
+        order = 'second' if game['coin'] else 'first'
         game_count += 1
         won = game['result'] == 'win'
+        last_turn = game['card_history'][-1]['turn']
+        if won:
+            order_w[order] += 1
+        else:
+            order_l[order] += 1
         for entry in game['card_history']:
             turn = entry['turn']
             if entry['player'] == 'me':
                 card = entry['card']['name']
                 card_cost[card] = entry['card']['mana']
+                card_turn_played[card].append(turn)
+                card_game_duration[card].append(last_turn)
                 if won:
                     card_w[card] += 1
                 else:
                     card_l[card] += 1
     print("Loaded %s ranked games as %s" % (game_count, deckname))
+    print('')
+    print_winrate("Going First", order_w['first'], order_l['first'])
+    print_winrate("Going Second", order_w['second'], order_l['second'])
+    print_card_stats(THE_COIN, card_w[THE_COIN], card_l[THE_COIN],
+        card_turn_played[THE_COIN], card_game_duration[THE_COIN])
     for cost, cards in cards_by_cost(card_cost):
-        print("")
+        print('')
         print("(%s)" % cost)
         for card in sorted(cards, reverse=True, key=lambda x: winrate(card_w[x], card_l[x])):
-            print_winrate(card, card_w[card], card_l[card])
+            print_card_stats(card, card_w[card], card_l[card],
+                    card_turn_played[card], card_game_duration[card])
+
+def print_card_stats(cardname, wins, losses, turns_played=[], game_durations=[]):
+    if wins + losses <= 1:
+        return
+    avg_turn = round(average(turns_played), 2)
+    avg_duration = round(average(game_durations), 2)
+    suffix = 'Turn: %s, \tDuration: %s turns.' % (avg_turn, avg_duration)
+    print_winrate(cardname, wins, losses, suffix=suffix)
+
 
 def mulligan_analysis(deckname="Mono Spells", pages=None):
     games = load_games(pages=pages, deck=deckname, mode='ranked')
