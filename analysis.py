@@ -45,17 +45,24 @@ def clear():
     #os.system('cls' if os.name == 'nt' else 'clear')
 
 def interactive_mode():
-    options = ['Card Analysis', 'Mulligan Analyis', 'Time Analysis', 'Nevermind']
+    options = ['Card Analysis', 'Mulligan Analyis', 'Problematic Cards', 'Short Games', 'Long Games', 'Time Analysis', 'Nevermind']
     for i in range(len(options)):
         print('(%s) %s' % (i+1, options[i]))
     num = int(raw_input('Choose an analysis type: '))
-    if num == 1:
+    deck = None
+    if num < len(options) - 1:
         deck = choose_deck()
+    if num == 1:
         card_analysis(deckname=deck, pages=None)
     elif num == 2:
-        deck = choose_deck()
         mulligan_analysis(deckname=deck, pages=None)
     elif num == 3:
+        problem_cards(deckname=deck, pages=None)
+    elif num == 4:
+        card_analysis(deckname=deck, pages=None, durations=(1,9))
+    elif num == 5:
+        card_analysis(deckname=deck, pages=None, durations=(15,50))
+    elif num == 6:
         time_analysis(mode=None, pages=10)
 
 def choose_deck():
@@ -92,7 +99,7 @@ def num_pages(mode=None, deck=None):
         clear()
         print('Found ~%s games, how many do you want to load?' % (total * PAGE_SIZE))
         inpt = raw_input("Enter a number between 0 and %s or 'a' for all: " % (total * PAGE_SIZE))
-        if inpt not in ['a', 'all', "'all'"]:
+        if inpt.lower() not in ['a', 'all', "'all'"]:
             total = min((int(inpt) + PAGE_SIZE - 1)/PAGE_SIZE, total)
         clear()
     return total
@@ -144,6 +151,12 @@ def cards_by_cost(card_cost_map):
     return ([(cost, cost_card_map[cost]) for cost in sorted(cost_card_map.keys())]
             + [('Tokens', tokens), ('Hero Powers', hero_powers)])
 
+def print_card_stats(cardname, wins, losses, turns_played=[], game_durations=[]):
+    avg_turn = round(average(turns_played), 2)
+    avg_duration = round(average(game_durations), 2)
+    suffix = 'Turn: %s, \tDuration: %s turns.' % (avg_turn, avg_duration)
+    print_winrate(cardname, wins, losses, suffix=suffix)
+
 def print_winrate(name, w, l, suffix = ''):
     # division by 0 case
     if w + l == 0: return
@@ -156,9 +169,28 @@ def winrate(w, l):
 def average(list_nums):
     return float(sum(list_nums))/len(list_nums)
 
-def card_analysis(deckname="Mono Spells", pages=None):
+def analyze(deckname="Mono Spells", pages=None, turns=(1,50), durations=(1,50),
+    player='me', mode='ranked', group_by_cost=False, group_by_opponent=False,
+    min_frequency=1, include_hero_powers=False, include_tokens=False, winrates=(0,100)):
+    '''
+    deckname: the deck to analyze
+    pages: an optional number of pages of games to load, defaults to loading all
+    turns: an optional tuple of first/last turn to count.
+    durations: an optional tuple of min/max game duration (in turns) to count.
+    winrates: min/max winrates to be shown, between 0 and 100
+    player: 'me' or 'opponent'
+    group_by_cost: whether or not to group the cards by cost
+    group_by_opponent: whether or not to group the cards by opponent
+    mode: an optional filter (ranked, casual, friendly, None)
+    min_frequency: ignores cards that were played less than this many times.
+    include_tokens: whether to show stats for uncollectable cards
+    include_hero_powers: whether to show stats for hero powers
+    '''
+    min_turn, max_turn = turns
+    min_duration, max_duration = durations
+    min_winrate, max_winrate = winrates
     games = load_games(pages=pages, deck=deckname, mode='ranked')
-    cards = set()
+    card_frequency = defaultdict(int)
     card_cost = defaultdict(int)
     card_w = defaultdict(int)
     card_l = defaultdict(int)
@@ -167,84 +199,83 @@ def card_analysis(deckname="Mono Spells", pages=None):
     game_count = 0
     order_w = defaultdict(int)
     order_l = defaultdict(int)
+    matchup_card_w = defaultdict(lambda: defaultdict(int))
+    matchup_card_l = defaultdict(lambda: defaultdict(int))
     for game in games:
-        if game['mode'] != 'ranked': continue
+        last_turn = game['card_history'][-1]['turn']
         if game['hero_deck'] != deckname: continue
+        if mode is not None and game['mode'] != mode: continue
+        if last_turn < min_duration or last_turn > max_duration: continue
         order = 'second' if game['coin'] else 'first'
         game_count += 1
+        opp = game['opponent']
         won = game['result'] == 'win'
-        last_turn = game['card_history'][-1]['turn']
         if won:
             order_w[order] += 1
         else:
             order_l[order] += 1
         for entry in game['card_history']:
             turn = entry['turn']
-            if entry['player'] == 'me':
-                card = entry['card']['name']
+            if turn < min_turn or turn > max_turn: continue
+            if entry['player'] == player:
+                card = entry['card']['name']                
+                if include_hero_powers is False and card in HERO_POWERS: continue
+                if include_tokens is False and card in TOKEN_CARDS: continue
                 card_cost[card] = entry['card']['mana']
                 card_turn_played[card].append(turn)
                 card_game_duration[card].append(last_turn)
+                card_frequency[card] += 1
                 if won:
                     card_w[card] += 1
-                else:
-                    card_l[card] += 1
-    print("Loaded %s ranked games as %s" % (game_count, deckname))
-    print('')
-    print_winrate("Going First", order_w['first'], order_l['first'])
-    print_winrate("Going Second", order_w['second'], order_l['second'])
-    print_card_stats(THE_COIN, card_w[THE_COIN], card_l[THE_COIN],
-        card_turn_played[THE_COIN], card_game_duration[THE_COIN])
-    for cost, cards in cards_by_cost(card_cost):
-        print('')
-        print("(%s)" % cost)
-        for card in sorted(cards, reverse=True, key=lambda x: winrate(card_w[x], card_l[x])):
-            print_card_stats(card, card_w[card], card_l[card],
-                    card_turn_played[card], card_game_duration[card])
-
-def print_card_stats(cardname, wins, losses, turns_played=[], game_durations=[]):
-    if wins + losses <= 1:
-        return
-    avg_turn = round(average(turns_played), 2)
-    avg_duration = round(average(game_durations), 2)
-    suffix = 'Turn: %s, \tDuration: %s turns.' % (avg_turn, avg_duration)
-    print_winrate(cardname, wins, losses, suffix=suffix)
-
-
-def mulligan_analysis(deckname="Mono Spells", pages=None):
-    games = load_games(pages=pages, deck=deckname, mode='ranked')
-    cards = set()
-    card_cost = defaultdict(int)
-    matchup_card_w = defaultdict(lambda: defaultdict(int))
-    matchup_card_l = defaultdict(lambda: defaultdict(int))
-    game_count = 0
-    for game in games:
-        if game['mode'] != 'ranked': continue
-        if game['hero_deck'] != deckname: continue
-        game_count += 1
-        opp = game['opponent']
-        won = game['result'] == 'win'
-        for entry in game['card_history']:
-            turn = entry['turn']
-            if turn > 6: continue
-            if entry['player'] == 'me':
-                card = entry['card']['name']
-                if card in HERO_POWERS or card in TOKEN_CARDS: continue
-                card_cost[card] = entry['card']['mana']
-                if won:
                     matchup_card_w[opp][card] += 1
                 else:
+                    card_l[card] += 1
                     matchup_card_l[opp][card] += 1
-    print("Loaded %s ranked games as %s" % (game_count, deckname))
-    for hero in CLASSES:
-        print("")
-        print("%s vs %s" % (deckname, hero))
+    print("Loaded %s games as %s." % (game_count, deckname))
+    print('')
+    if group_by_opponent:
+        for hero in CLASSES:
+            print("")
+            print("%s vs %s" % (deckname, hero))
+            for card in sorted(card_frequency.keys(), reverse=True, #TODO: reverse this for problematic cards
+                        key=lambda x: winrate(matchup_card_w[hero][x], matchup_card_l[hero][x])):
+                if card_frequency[card] <= min_frequency: continue
+                w, l = matchup_card_w[hero][card], matchup_card_l[hero][card]
+                if winrate(w, l) > max_winrate or winrate(w, l) < min_winrate: continue
+                print_card_stats(card, w, l,
+                        card_turn_played[card], card_game_duration[card])
+    if group_by_cost:
+        print_winrate("Going First", order_w['first'], order_l['first'])
+        print_winrate("Going Second", order_w['second'], order_l['second'])
+        print_card_stats(THE_COIN, card_w[THE_COIN], card_l[THE_COIN],
+                card_turn_played[THE_COIN], card_game_duration[THE_COIN])
         for cost, cards in cards_by_cost(card_cost):
-            #print("")
-            #print("(%s)" % cost)
-            for card in sorted(cards, reverse=True,
-                    key=lambda x: winrate(matchup_card_w[hero][x], matchup_card_l[hero][x])):
-                print_winrate(card, matchup_card_w[hero][card], matchup_card_l[hero][card])
+            print('')
+            print("(%s)" % cost)
+            for card in sorted(cards, reverse=True, key=lambda x: winrate(card_w[x], card_l[x])):
+                if card_frequency[card] <= min_frequency: continue
+                w, l = card_w[card], card_l[card]
+                if winrate(w, l) > max_winrate or winrate(w, l) < min_winrate: continue
+                print_card_stats(card, w, l,
+                        card_turn_played[card], card_game_duration[card])
+
+def card_analysis(deckname="Mono Spells", pages=None, mode='ranked',
+        turns=(1,50), durations=(1,50)):
+    analyze(deckname=deckname, pages=pages, mode=mode,
+        group_by_cost=True, min_frequency=3,
+        include_hero_powers=True, include_tokens=True,
+        turns=turns, durations=durations)
+
+def mulligan_analysis(deckname="Mono Spells", pages=None, mode='ranked'):
+    analyze(deckname=deckname, pages=pages, mode=mode,
+        turns=(1,6), group_by_opponent=True, min_frequency=3,
+        include_hero_powers=False, include_tokens=False)
+
+def problem_cards(deckname="Mono Spells", pages=None, mode='ranked'):
+    analyze(deckname=deckname, pages=pages, mode=mode,
+        player='opponent', group_by_opponent=True,
+        winrates=(0,45), min_frequency=4,
+        include_hero_powers=False, include_tokens=True)
 
 # analyzes winrate for a given hour
 def time_analysis(mode=None, pages=None):
