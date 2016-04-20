@@ -7,8 +7,11 @@ Card winrate analysis using Trackobot API
 * follow instructions
 
 # Modes
-Card Analysis: For each card in a deck, find the winrate of games in which the card was played.
+Card Analysis: For each card in a deck, find the winrate of games in which the card was played.  
 Mulligan Analysis: For each matchup, find the winrate of cards played in the first 6 turns.  
+Problematic Cards: For each matchup, find cards against which you have < 45% winrate.  
+Short Games: Card analysis for games that last <= 9 turns.  
+Long Games: Card analysis for games that last >= 15 turns.  
 Time Analysis: For each hour of the day, your overall winrate.
 
 # Config
