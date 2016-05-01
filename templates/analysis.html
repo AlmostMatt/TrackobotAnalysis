@@ -1,0 +1,24 @@
+<head>
+</head>
+<body>
+    <p>Deck: {{ results.deck }}</p>
+    <p>Games Loaded: {{ results.games }}</p>
+    <table>
+        <tr>
+            <th>Card Name</th>
+            <th>Cost</th>
+            <th>Wins</th>
+            <th>Losses</th>
+            <th>Winrate</th>
+        </tr>
+        {% for r in results.cards %}
+        <tr>
+            <td>{{ r.name }}</td>
+            <td>{{ r.cost }}</td>
+            <td>{{ r.wins }}</td>
+            <td>{{ r.losses }}</td>
+            <td>{{ r.winrate }}%</td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>

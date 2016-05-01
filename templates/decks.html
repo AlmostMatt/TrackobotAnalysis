@@ -1,0 +1,21 @@
+<head>
+</head>
+<body>
+    <table>
+        <tr>
+            <th>Deck</th>
+            <th>Wins</th>
+            <th>Losses</th>
+            <th>Winrate</th>
+        </tr>
+        {% for r in decks %}
+        <tr>
+            <td>{{ r.deck }}</td>
+            <td>{{ r.wins }}</td>
+            <td>{{ r.losses }}</td>
+            <td>{{ r.winrate }}%</td>
+            <td><a href="/hearth/analyze?deck={{r.deck}}">Analyze</a></td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
