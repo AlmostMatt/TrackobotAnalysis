@@ -150,10 +150,10 @@ def load_games(pages=None, mode=None, deck=None):
         pages = num_pages(mode=mode, deck=deck)
     games = []
     for page in range(1, pages+1):
-        sys.stdout.write('\r')
-        str = "Loading page %s/%s" % (page, pages)
-        sys.stdout.write(str)
-        sys.stdout.flush()
+        #sys.stdout.write('\r')
+        #str = "Loading page %s/%s" % (page, pages)
+        #sys.stdout.write(str)
+        #sys.stdout.flush()
         more_games = load_page(page=page, mode=mode, deck=deck)
         if not more_games: break
         games.extend(more_games)
@@ -193,7 +193,7 @@ def card_stats_object(cardname, cost, wins, losses, total_w, total_l, turns_play
     avg_duration = round(average(game_durations), 2)
     winrate_not_played = winrate(total_w - wins, total_l - losses)
     return {
-        'name': cardname, 'cost': cost, 'wins': wins, 'losses': losses, 'winrate': winrate(wins, losses), 
+        'name': cardname, 'cost': cost, 'wins': wins, 'losses': losses, 'winrate': winrate(wins, losses),
         'avg_turn': avg_turn, 'avg_duration': avg_duration,
         'not_played': {'wins': total_w - wins, 'losses': total_l - losses, 'winrate': winrate_not_played},
     }
