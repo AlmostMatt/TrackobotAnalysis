@@ -157,8 +157,8 @@ def load_games(pages=None, mode=None, deck=None):
         more_games = load_page(page=page, mode=mode, deck=deck)
         if not more_games: break
         games.extend(more_games)
-    print("")
-    print("Loaded %s games" % len(games))
+    #print("")
+    #print("Loaded %s games" % len(games))
     return games
 
 def cards_by_cost(card_cost_map):
@@ -309,7 +309,7 @@ def analyze(deckname="Mono Spells", pages=None, turns=(1,50), durations=(1,50),
                 results['cards'].append(card_stats_object(card, cost, card_w[card], card_l[card], total_w, total_l,
                         card_turn_played[card], card_game_duration[card]))
     return results
-                    
+
 def print_analysis_results(results):
     # This method won't actually work anymore.
     print("Loaded %s games as %s." % (game_count, deckname))

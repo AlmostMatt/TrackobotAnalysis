@@ -18,13 +18,12 @@ def decks(request):
     decks = analysis.load_decks(min_games=min_games)
     return render_to_response('decks.html',
             {'decks': decks})
-    
+
 def analyze(request):
     deck = request.GET.get('deck', 'UNKNOWN')
-    
+
     results = analysis.card_analysis(deckname=deck, pages=3)
     # Sort by cost then winrate
-    print(results)
     return render_to_response('analysis.html',
             {'deck': deck, 'results': results})
 
