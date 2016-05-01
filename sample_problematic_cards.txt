@@ -1,0 +1,120 @@
+
+Found ~240 games, how many do you want to load?
+Enter a number between 0 and 240 or 'a' for all: a
+
+Loading page 16/16
+Loaded 236 games
+Loaded 222 ranked games as Mono Spells
+
+Mono Spells vs Warrior
+Gorehowl                    1/4    (20%)
+
+Mono Spells vs Warlock
+Zombie Chow                 2/3    (40%)
+Power Overwhelming          8/12   (40%)
+Flame Imp                   7/10   (41%)
+Mortal Coil                 3/4    (42%)
+Abusive Sergeant           12/15   (44%)
+Darkbomb                    4/9    (30%)
+Dire Wolf Alpha             4/8    (33%)
+Acidic Swamp Ooze           2/3    (40%)
+Dark Peddler               12/15   (44%)
+Ironbeak Owl                7/8    (46%)
+Knife Juggler               9/10   (47%)
+Big Game Hunter             0/5    (0%)
+Earthen Ring Farseer        3/4    (42%)
+Twilight Drake              1/9    (10%)
+Voidcaller                  2/5    (28%)
+Piloted Shredder            2/4    (33%)
+Dark Iron Dwarf             2/3    (40%)
+Defender of Argus           8/12   (40%)
+Doomguard                   2/7    (22%)
+Loatheb                     6/11   (35%)
+Antique Healbot             2/3    (40%)
+Emperor Thaurissan          3/8    (27%)
+Siphon Soul                 4/6    (40%)
+Dr. Boom                    2/7    (22%)
+Mal'Ganis                   3/4    (42%)
+Lord Jaraxxus               4/5    (44%)
+
+Mono Spells vs Priest
+Flash Heal                  1/4    (20%)
+Zombie Chow                 5/12   (29%)
+Wild Pyromancer             2/5    (28%)
+Shrinkmeister               3/4    (42%)
+Museum Curator             10/11   (47%)
+Deathlord                   5/12   (29%)
+Tournament Medic            1/4    (20%)
+Auchenai Soulpriest         2/4    (33%)
+Sludge Belcher              6/9    (40%)
+
+Mono Spells vs Paladin
+Competitive Spirit          0/6    (0%)
+Avenge                      2/10   (16%)
+Abusive Sergeant            1/5    (16%)
+Redemption                  1/5    (16%)
+Noble Sacrifice             2/5    (28%)
+Secretkeeper                9/12   (42%)
+Argent Squire               4/5    (44%)
+Haunted Creeper             7/18   (28%)
+Bluegill Warrior            2/3    (40%)
+Nerubian Egg                2/3    (40%)
+Knife Juggler              15/21   (41%)
+Shielded Minibot           22/23   (48%)
+Divine Favor                2/8    (20%)
+Murloc Warleader            2/4    (33%)
+Seal of Champions           2/3    (40%)
+Coghammer                   7/10   (41%)
+Muster for Battle          20/21   (48%)
+Defender of Argus           1/4    (20%)
+Blessing of Kings           8/16   (33%)
+Keeper of Uldaman           9/13   (40%)
+Piloted Shredder           16/18   (47%)
+Loatheb                     3/7    (30%)
+Mysterious Challenger       9/16   (36%)
+Tirion Fordring             6/8    (42%)
+
+Mono Spells vs Mage
+Unstable Portal             8/16   (33%)
+Sorcerer's Apprentice       6/8    (42%)
+Spellslinger                1/6    (14%)
+Flamewaker                 10/16   (38%)
+Mirror Entity               3/4    (42%)
+Water Elemental             4/9    (30%)
+Azure Drake                 3/8    (27%)
+
+Mono Spells vs Rogue
+Sap                         3/4    (42%)
+Tomb Pillager               2/3    (40%)
+Piloted Shredder            4/5    (44%)
+
+Mono Spells vs Shaman
+Lightning Bolt              1/4    (20%)
+Rockbiter Weapon            1/4    (20%)
+Tunnel Trogg                4/8    (33%)
+Shapeshift                  0/5    (0%)
+Lava Shock                  1/4    (20%)
+Totem Golem                 2/5    (28%)
+Doomhammer                  1/6    (14%)
+
+Mono Spells vs Hunter
+Piloted Shredder            1/7    (12%)
+Savannah Highmane           5/6    (45%)
+
+Mono Spells vs Druid
+Innervate                   6/17   (26%)
+Living Roots                6/10   (37%)
+Darnassus Aspirant          5/8    (38%)
+Shade of Naxxramas          2/6    (25%)
+Savage Roar                 6/9    (40%)
+Keeper of the Grove         7/13   (35%)
+Swipe                       7/13   (35%)
+Piloted Shredder            7/11   (38%)
+Sludge Belcher              1/6    (14%)
+Azure Drake                 7/15   (31%)
+Loatheb                     3/6    (33%)
+Druid of the Claw          10/17   (37%)
+Force of Nature             3/11   (21%)
+Emperor Thaurissan          2/6    (25%)
+Ancient of Lore             5/11   (31%)
+Dr. Boom                    3/6    (33%)

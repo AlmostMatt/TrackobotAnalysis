@@ -9,11 +9,11 @@ from collections import defaultdict, OrderedDict
 from config import USERNAME, PASSWORD, LOCAL_TZ, API_KEY
 
 MODES = ['arena', 'ranked', 'friendly', 'casual']
-CLASSES = ['Warrior', 'Warlock', 'Priest', 'Paladin', 'Mage', 'Rogue', 'Shaman', 'Hunter', 'Druid']
+CLASSES = ['Druid', 'Hunter', 'Mage', 'Paladin', 'Priest', 'Rogue', 'Shaman', 'Warlock', 'Warrior']
 PAGE_SIZE = 15
 
 HERO_POWERS = {
-    'Lesser Heal', 'Life Tap', 'Shape Shift', 'Fireblast', 'Armor Up', 'Dagger Mastery',
+    'Lesser Heal', 'Life Tap', 'Shapeshift', 'Fireblast', 'Armor Up', 'Dagger Mastery',
     'Steady Shot', 'Reinforce', 'Totemic Call',
     'Heal', 'Soul Tap', 'Dire Shapeshift', 'Fireblast Rank 2', 'Tank Up', 'Poisoned Daggers',
     'Ballista Shot', 'The Silver Hand', 'Totemic Slam',
@@ -38,6 +38,9 @@ THE_COIN = 'The Coin'
 # so that I can cleanup trackobot
 
 # TODO: give inputs for game mode and #pages
+
+# TODO: write down expansion/standard/nerf dates, and allow a time-filter
+# (one month, since old gods, all time)
 
 def clear():
     print('')
@@ -75,13 +78,21 @@ def choose_deck():
     # ordered dict preserves the order of the deck list
     data = json.loads(r.text, object_pairs_hook=OrderedDict)
     deck_results = data['stats']['as_deck']
-    i = 1
-    for deck, results in deck_results.items()[:9]:
-        print_winrate('  (%s) %s' % (i, deck), results['wins'], results['losses'])
-        i+=1
-    num = raw_input('Choose a deck: ')
-    clear()
-    deck = deck_results.keys()[int(num)-1]
+    decks_per_page = 6
+    for first_deck in range(0, len(deck_results), decks_per_page):
+        last_deck = min(first_deck + decks_per_page, len(deck_results))
+        i = 1
+        for deck_index in range(first_deck, last_deck):
+            deck, results = deck_results.items()[deck_index]
+            print_winrate('  (%s) %s' % (i, deck), results['wins'], results['losses'])
+            i+=1
+        if last_deck < len(deck_results):
+           print('  (%s) More Decks' % i)
+        num = int(raw_input('Choose a deck: '))
+        clear()
+        if num <= decks_per_page:
+            deck = deck_results.keys()[first_deck + num - 1]
+            break
     print('Selected %s.' % deck)
     return deck
 
@@ -151,16 +162,21 @@ def cards_by_cost(card_cost_map):
     return ([(cost, cost_card_map[cost]) for cost in sorted(cost_card_map.keys())]
             + [('Tokens', tokens), ('Hero Powers', hero_powers)])
 
-def print_card_stats(cardname, wins, losses, turns_played=[], game_durations=[]):
+def print_card_stats(cardname, wins, losses, total_w, total_l, turns_played=[], game_durations=[]):
     avg_turn = round(average(turns_played), 2)
     avg_duration = round(average(game_durations), 2)
     suffix = 'Turn: %s, \tDuration: %s turns.' % (avg_turn, avg_duration)
-    print_winrate(cardname, wins, losses, suffix=suffix)
+    print_winrate(cardname, wins, losses, total_w, total_l, suffix=suffix)
 
-def print_winrate(name, w, l, suffix = ''):
+def print_winrate(name, w, l, total_w=0, total_l=0, suffix = ''):
     # division by 0 case
     if w + l == 0: return
-    print("{:25s} {:3d}/{:<3d}  {:6s}    {}".format(name, w, l, '(%s%%)' % winrate(w,l), suffix))
+    if total_w + total_l != 0:
+        winrate_not_played = winrate(total_w - w, total_l - l)
+        print("{:25s} {:3d}/{:<3d} {:6s}   When not played: {:3d}/{:<3d} {:6s}   {}".format(
+            name, w, l, '(%s%%)' % winrate(w,l), total_w-w, total_l-l, '(%s%%)' % winrate_not_played, suffix))
+    else:
+        print("{:25s} {:3d}/{:<3d}  {:6s}    {}".format(name, w, l, '(%s%%)' % winrate(w,l), suffix))
 
 def winrate(w, l):
     if w + l == 0: return 0
@@ -201,6 +217,8 @@ def analyze(deckname="Mono Spells", pages=None, turns=(1,50), durations=(1,50),
     order_l = defaultdict(int)
     matchup_card_w = defaultdict(lambda: defaultdict(int))
     matchup_card_l = defaultdict(lambda: defaultdict(int))
+    total_w = 0
+    total_l = 0
     for game in games:
         last_turn = game['card_history'][-1]['turn']
         if game['hero_deck'] != deckname: continue
@@ -211,14 +229,19 @@ def analyze(deckname="Mono Spells", pages=None, turns=(1,50), durations=(1,50),
         opp = game['opponent']
         won = game['result'] == 'win'
         if won:
+            total_w += 1
             order_w[order] += 1
         else:
+            total_l += 1
             order_l[order] += 1
+        cards_per_game = set()
         for entry in game['card_history']:
             turn = entry['turn']
             if turn < min_turn or turn > max_turn: continue
             if entry['player'] == player:
-                card = entry['card']['name']                
+                card = entry['card']['name']
+                if card in cards_per_game: continue # don't want to count wins twice
+                cards_per_game.add(card)
                 if include_hero_powers is False and card in HERO_POWERS: continue
                 if include_tokens is False and card in TOKEN_CARDS: continue
                 card_cost[card] = entry['card']['mana']
@@ -239,24 +262,25 @@ def analyze(deckname="Mono Spells", pages=None, turns=(1,50), durations=(1,50),
             print("%s vs %s" % (deckname, hero))
             for card in sorted(card_frequency.keys(), reverse=True, #TODO: reverse this for problematic cards
                         key=lambda x: winrate(matchup_card_w[hero][x], matchup_card_l[hero][x])):
-                if card_frequency[card] <= min_frequency: continue
                 w, l = matchup_card_w[hero][card], matchup_card_l[hero][card]
+                # card frequency is not matchup specific, so w+l might be 0
+                if w + l < min_frequency: continue
                 if winrate(w, l) > max_winrate or winrate(w, l) < min_winrate: continue
-                print_card_stats(card, w, l,
+                print_card_stats(card, w, l, total_w, total_l,
                         card_turn_played[card], card_game_duration[card])
     if group_by_cost:
         print_winrate("Going First", order_w['first'], order_l['first'])
         print_winrate("Going Second", order_w['second'], order_l['second'])
-        print_card_stats(THE_COIN, card_w[THE_COIN], card_l[THE_COIN],
+        print_card_stats(THE_COIN, card_w[THE_COIN], card_l[THE_COIN], total_w, total_l,
                 card_turn_played[THE_COIN], card_game_duration[THE_COIN])
         for cost, cards in cards_by_cost(card_cost):
             print('')
             print("(%s)" % cost)
             for card in sorted(cards, reverse=True, key=lambda x: winrate(card_w[x], card_l[x])):
-                if card_frequency[card] <= min_frequency: continue
+                if card_frequency[card] < min_frequency: continue
                 w, l = card_w[card], card_l[card]
                 if winrate(w, l) > max_winrate or winrate(w, l) < min_winrate: continue
-                print_card_stats(card, w, l,
+                print_card_stats(card, w, l, total_w, total_l,
                         card_turn_played[card], card_game_duration[card])
 
 def card_analysis(deckname="Mono Spells", pages=None, mode='ranked',
