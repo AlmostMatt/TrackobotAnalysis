@@ -14,7 +14,7 @@
             <td>{{ r.wins }}</td>
             <td>{{ r.losses }}</td>
             <td>{{ r.winrate }}%</td>
-            <td><a href="/hearth/analyze?deck={{r.deck}}">Analyze</a></td>
+            <td><a href="{% url 'TrackobotAnalysis.views.analyze' %}?deck={{r.deck}}">Analyze</a></td>
         </tr>
         {% endfor %}
     </table>

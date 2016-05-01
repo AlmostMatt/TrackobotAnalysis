@@ -1,8 +1,6 @@
 from django.conf.urls import patterns, url
 
-from TrackobotAnalysis import views
-
 urlpatterns = patterns('',
-    url(r'^decks/$', views.decks),
-    url(r'^analyze/$', views.analyze),
+    url(r'^decks/$', 'TrackobotAnalysis.views.decks'),
+    url(r'^analyze/$', 'TrackobotAnalysis.views.analyze'),
 )
