@@ -1,24 +1,30 @@
+{# Load the tag library #}
+{% load bootstrap3 %}
+
+{# Load CSS and JavaScript #}
+{% bootstrap_css %}
+{% bootstrap_javascript %}
+
 <head>
 </head>
 <body>
-    <p>Deck: {{ results.deck }}</p>
-    <p>Games Loaded: {{ results.games }}</p>
-    <table>
+<div class='container'>
+    <h1 class='page-header'>{{ results.deck }} <small>Loaded {{ results.games }} games.</small></h1>
+    <table class='table table-striped'>
         <tr>
             <th>Card Name</th>
             <th>Cost</th>
-            <th>Wins</th>
-            <th>Losses</th>
+            <th>Win / Loss</th>
             <th>Winrate</th>
         </tr>
         {% for r in results.cards %}
         <tr>
             <td>{{ r.name }}</td>
             <td>{{ r.cost }}</td>
-            <td>{{ r.wins }}</td>
-            <td>{{ r.losses }}</td>
+            <td>{{ r.wins }} / {{ r.losses }}</td>
             <td>{{ r.winrate }}%</td>
         </tr>
         {% endfor %}
     </table>
+    </div>
 </body>

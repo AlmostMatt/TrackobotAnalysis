@@ -1,8 +1,11 @@
 # TrackobotAnalysis
 Card winrate analysis using Trackobot API
 
-# Usage
+You can see the web version at http://almostmatt.com/dj/hearth/decks
+
+# Local Usage
 * update your Username, Password, and API Key in config.py
+* Uncomment interactive_mode at the bottom of analysis.py
 * $ python analysis.py
 * follow instructions
 

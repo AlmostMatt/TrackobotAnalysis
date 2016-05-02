@@ -14,15 +14,19 @@ import json
 # and use the internal card names
 
 def decks(request):
+    username = request.GET.get('username', None)
+    token = request.GET.get('token', None)
     min_games = int(request.GET.get('min_games', 10))
-    decks = analysis.load_decks(min_games=min_games)
+    decks = analysis.load_decks(username=username, token=token, min_games=min_games)
     return render_to_response('decks.html',
             {'decks': decks})
 
 def analyze(request):
+    username = request.GET.get('username', None)
+    token = request.GET.get('token', None)
     deck = request.GET.get('deck', 'UNKNOWN')
 
-    results = analysis.card_analysis(deckname=deck, pages=3)
+    results = analysis.card_analysis(username=username, token=token, deckname=deck, num_games=40)
     # Sort by cost then winrate
     return render_to_response('analysis.html',
             {'deck': deck, 'results': results})

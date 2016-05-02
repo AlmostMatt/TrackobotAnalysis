@@ -47,6 +47,15 @@ def clear():
     #this is not working for me on cygwin
     #os.system('cls' if os.name == 'nt' else 'clear')
 
+def trackobot_request(url, username=None, token=None):
+    if username is None: username = USERNAME
+    if token is None: token = API_KEY
+    url += '&username=%s&token=%s' % (username, token)
+    r = requests.get(url, auth=(USERNAME, PASSWORD))
+    # ordered dict preserves the order of json dicts
+    data = json.loads(r.text, object_pairs_hook=OrderedDict)
+    return data
+
 def interactive_mode():
     options = ['Card Analysis', 'Mulligan Analyis', 'Problematic Cards', 'Short Games', 'Long Games', 'Time Analysis', 'Nevermind']
     for i in range(len(options)):
@@ -56,25 +65,22 @@ def interactive_mode():
     if num < len(options) - 1:
         deck = choose_deck()
     if num == 1:
-        card_analysis(deckname=deck, pages=None)
+        card_analysis(deckname=deck, num_games=None)
     elif num == 2:
-        mulligan_analysis(deckname=deck, pages=None)
+        mulligan_analysis(deckname=deck, num_games=None)
     elif num == 3:
-        problem_cards(deckname=deck, pages=None)
+        problem_cards(deckname=deck, num_games=None)
     elif num == 4:
-        card_analysis(deckname=deck, pages=None, durations=(1,9))
+        card_analysis(deckname=deck, num_games=None, durations=(1,9))
     elif num == 5:
-        card_analysis(deckname=deck, pages=None, durations=(15,50))
+        card_analysis(deckname=deck, num_games=None, durations=(15,50))
     elif num == 6:
-        time_analysis(mode=None, pages=10)
+        time_analysis(mode=None, num_games=10)
 
-def load_decks(username=None, apikey=None, min_games=10):
+def load_decks(username=None, token=None, min_games=10):
     # return tuples of deck names and games played.
-    url = ('https://trackobot.com/profile/stats/decks.json?order=desc&sort_by=share'
-            '&mode=ranked&username=%s&token=%s' % (USERNAME, API_KEY))
-    r = requests.get(url, auth=(USERNAME, PASSWORD))
-    # ordered dict preserves the order of the deck list
-    data = json.loads(r.text, object_pairs_hook=OrderedDict)
+    data = trackobot_request('https://trackobot.com/profile/stats/decks.json?order=desc&sort_by=share&mode=ranked',
+        username=username, token=token)
     deck_results = data['stats']['as_deck']
     decks = []
     for deck, results in deck_results.items():
@@ -83,15 +89,13 @@ def load_decks(username=None, apikey=None, min_games=10):
             decks.append({'deck': deck, 'wins': w, 'losses': l, 'winrate': winrate(w, l)})
     return decks
 
-def choose_deck():
+def choose_deck(username=None, token=None):
     clear()
     print('Loading decks...')
-    url = ('https://trackobot.com/profile/stats/decks.json?order=desc&sort_by=share'
-            '&mode=ranked&username=%s&token=%s' % (USERNAME, API_KEY))
-    r = requests.get(url, auth=(USERNAME, PASSWORD))
+    data = trackobot_request('https://trackobot.com/profile/stats/decks.json?order=desc&sort_by=share&mode=ranked',
+        username=username, token=token)
     clear()
     # ordered dict preserves the order of the deck list
-    data = json.loads(r.text, object_pairs_hook=OrderedDict)
     deck_results = data['stats']['as_deck']
     decks_per_page = 6
     for first_deck in range(0, len(deck_results), decks_per_page):
@@ -111,15 +115,15 @@ def choose_deck():
     print('Selected %s.' % deck)
     return deck
 
-def num_pages(mode=None, deck=None):
-    url = ("https://trackobot.com/profile/history.json?username=%s&token=%s"
-            % (USERNAME, API_KEY))
+def num_pages(mode=None, deck=None, username=None, token=None):
+    if username is None: username = USERNAME
+    if token is None: token = API_KEY
+    url = "https://trackobot.com/profile/history.json?"
     if deck is not None:
         url = url + "&query=%s" % (deck)
     elif mode is not None:
         url = url + "&query=%s" % (mode)
-    r = requests.get(url, auth=(USERNAME, PASSWORD))
-    data = r.json()
+    data = trackobot_request(url, username=username, token=token)
     total = data['meta']['total_pages']
     if total > 5:
         clear()
@@ -130,33 +134,40 @@ def num_pages(mode=None, deck=None):
         clear()
     return total
 
-def load_page(page=1, mode=None, deck=None):
-    url = ("https://trackobot.com/profile/history.json?page=%s&username=%s&token=%s"
-            % (page, USERNAME, API_KEY))
+def load_page(page=1, mode=None, deck=None,
+        username=None, token=None):
+    url = ("https://trackobot.com/profile/history.json?page=%s" % (page))
     if deck is not None:
         url = url + "&query=%s" % (deck)
     elif mode is not None:
         url = url + "&query=%s" % (mode)
-    r = requests.get(url, auth=(USERNAME, PASSWORD))
-    data = r.json()
+    data = trackobot_request(url, username=username, token=token)
     return data['history']
 
 def utc_to_local(utc_dt):
     local_dt = utc_dt.replace(tzinfo=pytz.utc).astimezone(LOCAL_TZ)
     return LOCAL_TZ.normalize(local_dt) # .normalize might be unnecessary
 
-def load_games(pages=None, mode=None, deck=None):
-    if pages is None:
+def load_games(num_games=None, mode=None, deck=None,
+        username=None, token=None):
+    if num_games is None:
         pages = num_pages(mode=mode, deck=deck)
+        num_games = PAGE_SIZE * games
     games = []
-    for page in range(1, pages+1):
+    page=1
+    while len(games) < num_games:
         #sys.stdout.write('\r')
         #str = "Loading page %s/%s" % (page, pages)
         #sys.stdout.write(str)
         #sys.stdout.flush()
-        more_games = load_page(page=page, mode=mode, deck=deck)
+        more_games = load_page(page=page, mode=mode, deck=deck,
+                username=username, token=token)
         if not more_games: break
-        games.extend(more_games)
+        for game in more_games:
+            if deck is not None and game['hero_deck'] != deck: continue
+            if mode is not None and game['mode'] != mode: continue
+            games.append(game)
+        page += 1
     #print("")
     #print("Loaded %s games" % len(games))
     return games
@@ -175,7 +186,7 @@ def cards_by_cost(card_cost_map):
         else:
             cost_card_map[cost].append(card)
     return ([(cost, cost_card_map[cost]) for cost in sorted(cost_card_map.keys())]
-            + [('Tokens', tokens), ('Hero Powers', hero_powers)])
+            + [('Token', tokens), ('Hero Power', hero_powers)])
 
 def print_card_stats(cardname, wins, losses, total_w, total_l, turns_played=[], game_durations=[]):
     avg_turn = round(average(turns_played), 2)
@@ -213,11 +224,13 @@ def winrate(w, l):
     return int(100*(float(w)/(w+l)))
 
 def average(list_nums):
+    if len(list_nums) == 0: return 0
     return float(sum(list_nums))/len(list_nums)
 
-def analyze(deckname="Mono Spells", pages=None, turns=(1,50), durations=(1,50),
-    player='me', mode='ranked', group_by_cost=False, group_by_opponent=False,
-    min_frequency=1, include_hero_powers=False, include_tokens=False, winrates=(0,100)):
+def analyze(deckname="Mono Spells", num_games=None, turns=(1,50), durations=(1,50),
+        player='me', mode='ranked', group_by_cost=False, group_by_opponent=False,
+        min_frequency=1, include_hero_powers=False, include_tokens=False, winrates=(0,100),
+        username=None, token=None):
     '''
     deckname: the deck to analyze
     pages: an optional number of pages of games to load, defaults to loading all
@@ -231,11 +244,13 @@ def analyze(deckname="Mono Spells", pages=None, turns=(1,50), durations=(1,50),
     min_frequency: ignores cards that were played less than this many times.
     include_tokens: whether to show stats for uncollectable cards
     include_hero_powers: whether to show stats for hero powers
+    username/token for trackobot requests
     '''
     min_turn, max_turn = turns
     min_duration, max_duration = durations
     min_winrate, max_winrate = winrates
-    games = load_games(pages=pages, deck=deckname, mode='ranked')
+    games = load_games(num_games=num_games, deck=deckname, mode='ranked',
+            username=username, token=token)
     card_frequency = defaultdict(int)
     card_cost = defaultdict(int)
     card_w = defaultdict(int)
@@ -251,8 +266,6 @@ def analyze(deckname="Mono Spells", pages=None, turns=(1,50), durations=(1,50),
     total_l = 0
     for game in games:
         last_turn = game['card_history'][-1]['turn']
-        if game['hero_deck'] != deckname: continue
-        if mode is not None and game['mode'] != mode: continue
         if last_turn < min_duration or last_turn > max_duration: continue
         order = 'second' if game['coin'] else 'first'
         game_count += 1
@@ -291,7 +304,7 @@ def analyze(deckname="Mono Spells", pages=None, turns=(1,50), durations=(1,50),
     results['first'] = {'wins': order_w['first'], 'losses': order_l['first']}
     results['second'] = {'wins': order_w['second'], 'losses': order_l['second']}
     results['cards'] = []
-    results['cards'].append(card_stats_object(THE_COIN, None, card_w[THE_COIN], card_l[THE_COIN], total_w, total_l,
+    results['cards'].append(card_stats_object(THE_COIN, 0, card_w[THE_COIN], card_l[THE_COIN], total_w, total_l,
             card_turn_played[THE_COIN], card_game_duration[THE_COIN]))
     # Matchup specific results
     if group_by_opponent:
@@ -325,27 +338,29 @@ def print_analysis_results(results):
             print("(%s)" % cost)
         print_card_stats_object(card_stats)
 
-def card_analysis(deckname="Mono Spells", pages=None, mode='ranked',
-        turns=(1,50), durations=(1,50)):
-    return analyze(deckname=deckname, pages=pages, mode=mode,
+def card_analysis(deckname="Mono Spells", num_games=None, mode='ranked',
+        turns=(1,50), durations=(1,50), username=None, token=None):
+    return analyze(deckname=deckname, num_games=num_games, mode=mode,
         group_by_cost=True, min_frequency=3,
         include_hero_powers=True, include_tokens=True,
-        turns=turns, durations=durations)
+        turns=turns, durations=durations, username=username, token=token)
 
-def mulligan_analysis(deckname="Mono Spells", pages=None, mode='ranked'):
-    return analyze(deckname=deckname, pages=pages, mode=mode,
+def mulligan_analysis(deckname="Mono Spells", num_games=None, mode='ranked',
+        username=None, token=None):
+    return analyze(deckname=deckname, num_games=num_games, mode=mode,
         turns=(1,6), group_by_opponent=True, min_frequency=3,
-        include_hero_powers=False, include_tokens=False)
+        include_hero_powers=False, include_tokens=False, username=username, token=token)
 
-def problem_cards(deckname="Mono Spells", pages=None, mode='ranked'):
-    return analyze(deckname=deckname, pages=pages, mode=mode,
+def problem_cards(deckname="Mono Spells", num_games=None, mode='ranked',
+        username=None, token=None):
+    return analyze(deckname=deckname, num_games=num_games, mode=mode,
         player='opponent', group_by_opponent=True,
         winrates=(0,45), min_frequency=4,
-        include_hero_powers=False, include_tokens=True)
+        include_hero_powers=False, include_tokens=True, username=username, token=token)
 
 # analyzes winrate for a given hour
-def time_analysis(mode=None, pages=None):
-    games = load_games(mode=mode, pages=pages)
+def time_analysis(mode=None, num_games=None, username=None, token=None):
+    games = load_games(mode=mode, num_games=num_games, username=username, token=token)
     hours = range(24)
     wins = {hour:0 for hour in hours}
     losses = {hour:0 for hour in hours}
