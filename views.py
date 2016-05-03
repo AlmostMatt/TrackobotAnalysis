@@ -25,8 +25,9 @@ def analyze(request):
     username = request.GET.get('username', None)
     token = request.GET.get('token', None)
     deck = request.GET.get('deck', 'UNKNOWN')
+    games = int(request.GET.get('games', 40))
 
-    results = analysis.card_analysis(username=username, token=token, deckname=deck, num_games=40)
+    results = analysis.card_analysis(username=username, token=token, deckname=deck, num_games=games)
     # Sort by cost then winrate
     return render_to_response('analysis.html',
             {'deck': deck, 'results': results})
