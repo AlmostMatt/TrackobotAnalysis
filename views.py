@@ -18,7 +18,7 @@ def decks(request):
     token = request.GET.get('token', None)
     min_games = int(request.GET.get('min_games', 10))
     decks = analysis.load_decks(username=username, token=token, min_games=min_games)
-    return render_to_response('decks.html',
+    return render_to_response('hearth/decks.html',
             {'decks': decks})
 
 def analyze(request):
@@ -29,6 +29,6 @@ def analyze(request):
 
     results = analysis.card_analysis(username=username, token=token, deckname=deck, num_games=games)
     # Sort by cost then winrate
-    return render_to_response('analysis.html',
+    return render_to_response('hearth/analysis.html',
             {'deck': deck, 'results': results})
 
